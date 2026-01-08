@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ATS Resume Checker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ===== CSS ===== -->
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a, #020617);
+      color: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      padding: 30px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    h1 {
+      margin-top: 0;
+      text-align: center;
+      font-size: 28px;
+      letter-spacing: 0.5px;
+    }
+
+    p.subtitle {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin-top: 18px;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #c7d2fe;
+    }
+
+    input[type="file"],
+    textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #e5e7eb;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+    }
+
+    button {
+      width: 100%;
+      margin-top: 26px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: linear-gradient(90deg, #4f46e5, #6366f1);
+      color: white;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.35);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(79, 70, 229, 0.45);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .error {
+      margin-top: 16px;
+      color: #fca5a5;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .result {
+      margin-top: 30px;
+      padding: 22px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .score {
+      font-size: 42px;
+      font-weight: 800;
+      color: #22c55e;
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    .verdict {
+      text-align: center;
+      color: #d1d5db;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    footer {
+      margin-top: 22px;
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>ATS Resume Checker</h1>
+    <p class="subtitle">AI-powered resume & job description matching</p>
+
+    <label>Upload Resume (PDF)</label>
+    <input type="file" id="resume" accept=".pdf" />
+
+    <label>Job Description</label>
+    <textarea id="jd" placeholder="Paste the job description here..."></textarea>
+
+    <button id="analyzeBtn" onclick="analyze()">Analyze Resume</button>
+
+    <div id="error" class="error"></div>
+
+    <div id="result" class="result" style="display:none;">
+      <div class="score">
+        <span id="score"></span>%
+      </div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <footer>
+      © 2026 ATS Resume Checker
+    </footer>
+  </div>
+
+  <!-- ===== JS ===== -->
+  <script>
+    async function analyze() {
+      const resumeFile = document.getElementById("resume").files[0];
+      const jd = document.getElementById("jd").value.trim();
+      const errorDiv = document.getElementById("error");
+      const resultDiv = document.getElementById("result");
+      const analyzeBtn = document.getElementById("analyzeBtn");
+
+      errorDiv.innerText = "";
+      resultDiv.style.display = "none";
+
+      if (!resumeFile || !jd) {
+        errorDiv.innerText = "Please upload a resume and enter the job description.";
+        return;
+      }
+
+      analyzeBtn.disabled = true;
+      analyzeBtn.innerText = "Analyzing...";
+
+      const formData = new FormData();
+      formData.append("resume", resumeFile);
+      formData.append("job_description", jd);
+
+      try {
+        const response = await fetch("/analyze", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!response.ok) throw new Error("Server error");
+
+        const data = await response.json();
+
+        document.getElementById("score").innerText = data.score;
+        document.getElementById("verdict").innerText = data.verdict;
+        resultDiv.style.display = "block";
+
+      } catch (err) {
+        errorDiv.innerText = "Analysis failed. Please check backend and try again.";
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.innerText = "Analyze Resume";
+      }
+    }
+  </script>
+</body>
+</html>
